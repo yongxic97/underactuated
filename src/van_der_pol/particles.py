@@ -1,6 +1,8 @@
 import array
 import numpy as np
 import matplotlib.pyplot as plt
+import time
+
 from pydrake.all import (
     AddRandomInputs,
     BasicVector,
@@ -52,6 +54,7 @@ class Particle2DVisualizer(PyPlotVisualizer):
         PyPlotVisualizer.__init__(self, draw_timestep)
         self.DeclareInputPort(PortDataType.kVectorValued, 2*num_particles)
         self.num_particles = num_particles
+        self.ax.axis('auto')
         self.ax.set_xlim(xlim)
         self.ax.set_ylim(ylim)
         zero = array.array('d', (0,)*num_particles)
@@ -61,7 +64,9 @@ class Particle2DVisualizer(PyPlotVisualizer):
         xy = self.EvalVectorInput(context, 0).CopyToVector()
         self.lines.set_xdata(xy[:self.num_particles])
         self.lines.set_ydata(xy[self.num_particles:])
-        self.ax.set_title('t = ' + str(context.get_time()))
+        self.ax.set_title('t = ' + str(round(context.get_time())))
+        if (context.get_time() < 20):
+            time.sleep(.1)
 
 
 builder = DiagramBuilder()
@@ -80,9 +85,11 @@ AddRandomInputs(.1, builder)
 
 diagram = builder.Build()
 simulator = Simulator(diagram)
-simulator.set_publish_every_time_step(False)
+simulator.get_mutable_context().SetContinuousState(
+    np.vstack([np.zeros((num_particles, 1)),
+              np.full((num_particles, 1), 2.1)]))
 simulator.get_mutable_integrator().set_fixed_step_mode(True)
 simulator.get_mutable_integrator().set_maximum_step_size(0.1)
 
-simulator.AdvanceTo(20)
+simulator.AdvanceTo(1000)
 plt.show()
